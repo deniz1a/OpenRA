@@ -11,55 +11,115 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using OpenRA.Graphics;
 using OpenRA.Mods.Common.Traits;
-using OpenRA.Primitives;
 using OpenRA.Widgets;
 
 namespace OpenRA.Mods.Common.Widgets
 {
 	public class SupportPowerTimerWidget : Widget
 	{
-		public readonly string Font = "Bold";
-		public readonly string Format = "{0}: {1}";
-		public readonly TimerOrder Order = TimerOrder.Descending;
+		[Translate] public readonly string NoTeamText = "No Team";
+		[Translate] public readonly string TeamText = "Team {0}";
 
-		readonly IEnumerable<SupportPowerInstance> powers;
-		Pair<string, Color>[] texts;
+		readonly string fontName = "Bold";
+		readonly SpriteFont font;
+		readonly float yIncrement, powerPos, timePos;
+
+		readonly Dictionary<Player, SupportPowerManager> spManagers;
+		readonly SortedDictionary<int, Player[]> playersByTeam;
+
+		readonly bool noPowers;
+		readonly World world;
+
+		bool showTeamLabel, showPlayer, flashing;
+		Color timerColor;
 
 		[ObjectCreator.UseCtor]
 		public SupportPowerTimerWidget(World world)
 		{
-			powers = world.ActorsWithTrait<SupportPowerManager>()
-				.Where(p => !p.Actor.IsDead && !p.Actor.Owner.NonCombatant)
-				.SelectMany(s => s.Trait.Powers.Values)
-				.Where(p => p.Instances.Any() && p.Info.DisplayTimer && !p.Disabled);
-		}
+			var actorsWithSPM = world.ActorsWithTrait<SupportPowerManager>()
+				.Where(tp => !tp.Actor.IsDead && !tp.Actor.Owner.NonCombatant && tp.Actor.Owner != world.LocalPlayer);
 
-		public override void Tick()
-		{
-			texts = powers.Select(p =>
-			{
-				var time = WidgetUtils.FormatTime(p.RemainingTime, false);
-				var text = Format.F(p.Info.Description, time);
-				var color = !p.Ready || Game.LocalTick % 50 < 25 ? p.Instances[0].Self.Owner.Color.RGB : Color.White;
-				return Pair.New(text, color);
-			}).ToArray();
+			spManagers = new Dictionary<Player, SupportPowerManager>();
+			foreach (var traitPair in actorsWithSPM)
+				spManagers[traitPair.Actor.Owner] = traitPair.Trait;
+
+			var availablePowers = world.Map.Rules.Actors.Values
+				.SelectMany(ai => ai.Traits.WithInterface<SupportPowerInfo>())
+				.Where(i => i.DisplayTimer).ToArray();
+
+			noPowers = spManagers.Count == 0 || availablePowers.Length == 0;
+			if (noPowers)
+				return;
+
+			playersByTeam = new SortedDictionary<int, Player[]>();
+			foreach (var team in spManagers.Keys.GroupBy(p => world.LobbyInfo.ClientWithIndex(p.ClientIndex).Team))
+				playersByTeam[team.Key] = team.ToArray();
+
+			font = Game.Renderer.Fonts[fontName];
+			yIncrement = font.Measure(" ").Y + 5;
+			var padding = font.Measure("  ").X;
+			var maxPlayerWidth = spManagers.Keys.Max(p => font.Measure(p.PlayerName).X);
+			var maxPowerWidth = availablePowers.Max(i => font.Measure(i.Description).X);
+			powerPos = maxPlayerWidth + padding;
+			timePos = powerPos + maxPowerWidth + padding;
+
+			this.world = world;
 		}
 
 		public override void Draw()
 		{
-			if (!IsVisible() || texts == null)
+			if (!IsVisible() || noPowers)
 				return;
 
-			var y = 0;
-			foreach (var t in texts)
+			var widgetBounds = new float2(Bounds.Location);
+			var position = new float2(0, 0);
+
+			foreach (var team in playersByTeam)
 			{
-				var font = Game.Renderer.Fonts[Font];
-				font.DrawTextWithContrast(t.First, new float2(Bounds.Location) + new float2(0, y), t.Second, Color.Black, 1);
-				y += (font.Measure(t.First).Y + 5) * (int)Order;
+				showTeamLabel = true;
+				foreach (var player in team.Value)
+				{
+					var powers = spManagers[player].Powers.Values
+						.Where(i => i.Instances.Any() && i.Info.DisplayTimer && !i.Disabled &&
+							(i.Info.DisplayTimerToEnemies || player.IsAlliedWith(world.RenderPlayer))).ToArray();
+
+					if (powers.Length == 0)
+						continue;
+
+					if (showTeamLabel)
+					{
+						var teamLabel = team.Key == 0 ? NoTeamText : string.Format(TeamText, team.Key);
+						font.DrawTextWithContrast(teamLabel, widgetBounds + position, Color.White, Color.Black, 1);
+						position.Y += yIncrement;
+						showTeamLabel = false;
+					}
+
+					showPlayer = true;
+					flashing = Game.LocalTick % 50 < 25;
+					foreach (var power in powers)
+					{
+						if (showPlayer)
+						{
+							font.DrawTextWithContrast(player.PlayerName, widgetBounds + position, player.Color.RGB, Color.Black, 1);
+							showPlayer = false;
+						}
+
+						timerColor = power.Ready && flashing ? Color.White : player.Color.RGB;
+
+						position.X = powerPos;
+						font.DrawTextWithContrast(power.Info.Description, widgetBounds + position, timerColor, Color.Black, 1);
+
+						position.X = timePos;
+						var remainingTime = WidgetUtils.FormatTime(power.RemainingTime, false);
+						font.DrawTextWithContrast(remainingTime, widgetBounds + position, timerColor, Color.Black, 1);
+
+						position.X = 0;
+						position.Y += yIncrement;
+					}
+				}
 			}
 		}
-
-		public enum TimerOrder { Ascending = -1, Descending = 1 }
 	}
 }

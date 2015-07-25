@@ -28,7 +28,6 @@ Container@PLAYER_WIDGETS:
 		SupportPowerTimer@SUPPORT_POWER_TIMER:
 			X: 80
 			Y: 10
-			Order: Descending
 		Image@SIDEBAR_BACKGROUND_TOP:
 			Logic: AddFactionSuffixLogic
 			X: WINDOW_RIGHT - 250
