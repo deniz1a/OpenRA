@@ -34,6 +34,7 @@ MSLO:
 		MissileWeapon: atomic
 		SpawnOffset: 0,427,0
 		DisplayTimer: True
+		DisplayTimerToEnemies: True
 		DisplayBeacon: True
 		DisplayRadarPing: True
 		BeaconPoster: atomicon
@@ -760,6 +761,7 @@ ATEK:
 		RevealDelay: 15
 		LaunchSound: satlnch1.aud
 		DisplayTimer: True
+		DisplayTimerToEnemies: True
 	SupportPowerChargeBar:
 	RequiresPower:
 	DisabledOverlay:

@@ -38,6 +38,7 @@ namespace OpenRA.Mods.Common.Traits
 		public readonly string IncomingSound = null;
 
 		public readonly bool DisplayTimer = false;
+		public readonly bool DisplayTimerToEnemies = false;
 
 		[Desc("Palette used for the icon.")]
 		public readonly string IconPalette = "chrome";

@@ -46,6 +46,7 @@ namespace OpenRA.Mods.Common.Widgets
 		Color timerColor;
 
 		readonly World world;
+		Player cachedRenderPlayer;
 
 		[ObjectCreator.UseCtor]
 		public SupportPowerTimerWidget(World world)
@@ -86,8 +87,10 @@ namespace OpenRA.Mods.Common.Widgets
 
 			// Generate texts once in every 10 WorldTicks,
 			// which is 0.4 seconds in game time.
-			if (world.WorldTick % 10 == 0)
+			if (world.WorldTick % 10 == 0 || cachedRenderPlayer != world.RenderPlayer)
 			{
+				cachedRenderPlayer = world.RenderPlayer;
+
 				display.Clear();
 				foreach (var team in playersByTeam)
 				{
@@ -95,7 +98,8 @@ namespace OpenRA.Mods.Common.Widgets
 					foreach (var player in team.Value)
 					{
 						var powers = spManagers[player].Powers.Values
-							.Where(i => i.Instances.Any() && i.Info.DisplayTimer && !i.Disabled).ToArray();
+							.Where(i => i.Instances.Any() && i.Info.DisplayTimer && !i.Disabled &&
+								(i.Info.DisplayTimerToEnemies || player.IsAlliedWith(world.RenderPlayer))).ToArray();
 
 						if (!powers.Any())
 							continue;
