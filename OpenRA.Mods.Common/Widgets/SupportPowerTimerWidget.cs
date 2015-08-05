@@ -46,7 +46,8 @@ namespace OpenRA.Mods.Common.Widgets
 		Color timerColor;
 
 		readonly World world;
-		Player cachedRenderPlayer;
+		int lastTick = 0;
+		Player cachedRenderPlayer = null;
 
 		[ObjectCreator.UseCtor]
 		public SupportPowerTimerWidget(World world)
@@ -87,8 +88,11 @@ namespace OpenRA.Mods.Common.Widgets
 
 			// Generate texts once in every 10 WorldTicks,
 			// which is 0.4 seconds in game time.
-			if (world.WorldTick % 10 == 0 || cachedRenderPlayer != world.RenderPlayer)
+			// Also generate them if RenderPlayer has changed
+			// as a result of spectator shroud selection.
+			if (world.WorldTick - lastTick > 9 || cachedRenderPlayer != world.RenderPlayer)
 			{
+				lastTick = world.WorldTick;
 				cachedRenderPlayer = world.RenderPlayer;
 
 				display.Clear();
