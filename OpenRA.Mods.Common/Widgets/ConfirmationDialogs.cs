@@ -85,6 +85,7 @@ namespace OpenRA.Mods.Common.Widgets
 				acceptButton.OnClick();
 				return true;
 			};
+
 			input.OnEscKey = () =>
 			{
 				if (cancelButton.IsDisabled())
@@ -93,7 +94,7 @@ namespace OpenRA.Mods.Common.Widgets
 				cancelButton.OnClick();
 				return true;
 			};
-			input.TakeKeyboardFocus();
+
 			input.CursorPosition = input.Text.Length;
 			input.OnTextEdited = () => doValidate();
 

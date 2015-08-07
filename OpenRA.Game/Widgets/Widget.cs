@@ -35,6 +35,8 @@ namespace OpenRA.Widgets
 				Root.RemoveChild(WindowList.Pop());
 			if (WindowList.Count > 0)
 				Root.AddChild(WindowList.Peek());
+
+			UpdateKeyboardFocus();
 		}
 
 		public static Widget OpenWindow(string id)
@@ -47,7 +49,10 @@ namespace OpenRA.Widgets
 			var window = Game.ModData.WidgetLoader.LoadWidget(args, Root, id);
 			if (WindowList.Count > 0)
 				Root.RemoveChild(WindowList.Peek());
+
 			WindowList.Push(window);
+			UpdateKeyboardFocus();
+
 			return window;
 		}
 
@@ -108,6 +113,33 @@ namespace OpenRA.Widgets
 			return handled;
 		}
 
+		static Widget GetHighestFocusPriority(Widget w)
+		{
+			var focus = w;
+			foreach (var child in w.Children)
+			{
+				if (child == null || !child.IsVisible())
+					continue;
+
+				if (child.FocusPriority > focus.FocusPriority)
+					focus = child;
+
+				var r = GetHighestFocusPriority(child);
+				if (r != null && r.FocusPriority > focus.FocusPriority)
+					focus = r;
+			}
+
+			if (focus.FocusPriority < 1)
+				return null;
+
+			return focus;
+		}
+
+		public static void UpdateKeyboardFocus()
+		{
+			KeyboardFocusWidget = GetHighestFocusPriority(Root);
+		}
+
 		public static bool HandleKeyPress(KeyInput e)
 		{
 			if (KeyboardFocusWidget != null)
@@ -145,6 +177,7 @@ namespace OpenRA.Widgets
 		public readonly List<Widget> Children = new List<Widget>();
 
 		// Info defined in YAML
+		public readonly int FocusPriority;
 		public string Id = null;
 		public string X = "0";
 		public string Y = "0";
