@@ -638,6 +638,7 @@
     <Compile Include="Widgets\StrategicProgressWidget.cs" />
     <Compile Include="Widgets\SupportPowersWidget.cs" />
     <Compile Include="Widgets\SupportPowerTimerWidget.cs" />
+    <Compile Include="Widgets\TabButtonWidget.cs" />
     <Compile Include="Widgets\TerrainTemplatePreviewWidget.cs" />
     <Compile Include="Widgets\WorldCommandWidget.cs" />
     <Compile Include="SpriteLoaders\ShpTDLoader.cs" />
